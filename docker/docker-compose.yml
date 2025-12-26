@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  signaling:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: signaling-server
+    ports:
+      - "8484:8484"
+    restart: unless-stopped
+

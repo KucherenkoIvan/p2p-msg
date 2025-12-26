@@ -1,0 +1,6 @@
+{
+	"signalingUrl": "http://localhost",
+	"signalingPort": "8484",
+	"displayName": "po1son",
+	"idleTimeout": 5000
+}

@@ -1,0 +1,6 @@
+{
+	"signalingUrl": "http://138.124.102.191",
+	"signalingPort": "8484",
+	"displayName": "po1son",
+	"idleTimeout": 15000
+}
