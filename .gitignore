@@ -3,7 +3,7 @@
 #
 # Binaries for programs and plugins
 bin
-pkg/protobuf/gen
+pkg/protobuf/gen/**/*.pb.*
 *.exe
 *.exe~
 *.dll
