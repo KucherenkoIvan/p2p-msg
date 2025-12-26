@@ -2,6 +2,8 @@
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
 # Binaries for programs and plugins
+bin
+pkg/protobuf/gen
 *.exe
 *.exe~
 *.dll
@@ -26,6 +28,7 @@ go.work.sum
 
 # env file
 .env
+configs/*.private
 
 # Editor/IDE
 # .idea/
