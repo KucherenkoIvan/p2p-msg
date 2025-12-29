@@ -14,7 +14,7 @@ import (
 )
 
 // TODO: replace with cmd args
-const CLIENT_CONFIG_PATH = "cfg/local-client.json"
+const CLIENT_CONFIG_PATH = "cfg/client.json"
 
 func main() {
 	exitchan := make(chan os.Signal, 1)
@@ -67,14 +67,14 @@ func main() {
 	// go func() {
 	// 	defer wg.Done()
 	//
-	// 	conn, err := net.ListenPacket("udp", ":8585")
+	// 	conn, err := net.ListenPacket("udp", ":1111")
 	// 	if err != nil {
 	// 		log.Println("Error creating socket:", err)
 	// 		return
 	// 	}
 	// 	defer conn.Close()
 	//
-	// 	log.Println("Listening on :8585...")
+	// 	log.Println("Listening on :1111...")
 	//
 	// 	// TODO: consider safer alternatives - protobuf?
 	// 	buf := make([]byte, 1024)
@@ -127,17 +127,17 @@ func main() {
 
 	log.Println("All set up!")
 
-	clientAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:8586") // Change IP to server's IP
+	clientAddr, err := net.ResolveUDPAddr("udp", ":8585") // Change IP to server's IP
 	if err != nil {
 		panic(err)
 	}
 
-	serverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:8484") // Change IP to server's IP
+	serverAddr, err := net.ResolveUDPAddr("udp", fullSignalingUrl) // Change IP to server's IP
 	if err != nil {
 		panic(err)
 	}
 
-	client, err := stun.NewClient(clientAddr, serverAddr, "test", make([]byte, 0), make([]byte, 0))
+	client, err := stun.NewClient(clientAddr, serverAddr, "tui", make([]byte, 0), make([]byte, 0))
 	if err != nil {
 		panic(err)
 	}
@@ -177,7 +177,7 @@ func main() {
 						log.Println("Got discover response: ", dR.String())
 					}
 
-					bR, err := client.Bind("NONE")
+					bR, err := client.Bind("test")
 					if err != nil {
 						log.Println("Bind request failed with error: ", err)
 
