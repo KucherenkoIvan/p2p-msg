@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"p2p-msg/internal/signaling"
+	"p2p-msg/internal/stun"
 	"sync"
 )
 
@@ -114,13 +117,30 @@ func main() {
 
 	wg := sync.WaitGroup{}
 
+	// wg.Add(1)
+	// go func() {
+	// 	err := http.ListenAndServe(":8484", nil)
+	// 	if err != nil {
+	// 		log.Fatalln("Error serving http server: ", err)
+	// 	}
+	// 	wg.Done()
+	// }()
+
 	wg.Add(1)
 	go func() {
-		err := http.ListenAndServe(":8484", nil)
+		defer wg.Done()
+		addr, err := net.ResolveUDPAddr("udp", ":8484")
 		if err != nil {
-			log.Fatalln("Error serving http server: ", err)
+			log.Fatalln(err)
 		}
-		wg.Done()
+
+		stunServer, err := stun.NewServer(addr)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		defer stunServer.Dispose()
+
+		stunServer.Serve(context.Background())
 	}()
 	log.Println("Http server started")
 

@@ -1,21 +1,16 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"os"
-	"os/signal"
-	"p2p-msg/internal/config"
-	"p2p-msg/internal/datagram"
-	"p2p-msg/internal/signaling"
-	"strings"
 	"sync"
-	"syscall"
 	"time"
+
+	"p2p-msg/internal/config"
+	"p2p-msg/internal/stun"
 )
 
 // TODO: replace with cmd args
@@ -23,8 +18,8 @@ const CLIENT_CONFIG_PATH = "cfg/local-client.json"
 
 func main() {
 	exitchan := make(chan os.Signal, 1)
-	signal.Notify(exitchan, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
-
+	// signal.Notify(exitchan, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	//
 	// read configs
 	log.Printf("Loading JSON config from `%s`...", CLIENT_CONFIG_PATH)
 
@@ -40,103 +35,175 @@ func main() {
 
 	log.Printf("Resolving signaling server at `%s`...", fmt.Sprintf("%s/signaling/status", fullSignalingUrl))
 
-	httpClient := http.Client{
-		Timeout: time.Duration(config.IdleTimeout) * time.Millisecond,
-	}
+	// httpClient := http.Client{
+	// 	Timeout: time.Duration(config.IdleTimeout) * time.Millisecond,
+	// }
 
-	resolveResponse, err := httpClient.Get(fmt.Sprintf("%s/signaling/status", fullSignalingUrl))
-	if err != nil {
-		log.Fatalln("Can't resolve signaling server: ", err) // exit
-	} else if resolveResponse.StatusCode != 200 {
-		log.Fatalln("Signaling server responded to status requedst with non-2xx status") // exit
-	}
-
-	log.Println("Signaling server resolved")
-	log.Printf("Marking myself as ready with display name `%s`", config.DisplayName)
-	readyPayloadBytes, err := json.Marshal(signaling.ClientReadyRequest{DisplayName: config.DisplayName})
-	if err != nil {
-		log.Fatalln("Error while forming ready request: ", err) // exit
-	}
-
-	readyResponse, err := httpClient.Post(fmt.Sprintf("%s/signaling/clients/ready", fullSignalingUrl), "application/json", bytes.NewBuffer(readyPayloadBytes))
-	if err != nil {
-		log.Fatalln("Error while executing ready request: ", err) // exit
-	} else if readyResponse.StatusCode != 200 {
-		log.Fatalln("Signaling server rejected ready request") // exit
-	}
+	// resolveResponse, err := httpClient.Get(fmt.Sprintf("%s/signaling/status", fullSignalingUrl))
+	// if err != nil {
+	// 	log.Fatalln("Can't resolve signaling server: ", err) // exit
+	// } else if resolveResponse.StatusCode != 200 {
+	// 	log.Fatalln("Signaling server responded to status requedst with non-2xx status") // exit
+	// }
+	//
+	// log.Println("Signaling server resolved")
+	// log.Printf("Marking myself as ready with display name `%s`", config.DisplayName)
+	// readyPayloadBytes, err := json.Marshal(signaling.ClientReadyRequest{DisplayName: config.DisplayName})
+	// if err != nil {
+	// 	log.Fatalln("Error while forming ready request: ", err) // exit
+	// }
+	//
+	// readyResponse, err := httpClient.Post(fmt.Sprintf("%s/signaling/clients/ready", fullSignalingUrl), "application/json", bytes.NewBuffer(readyPayloadBytes))
+	// if err != nil {
+	// 	log.Fatalln("Error while executing ready request: ", err) // exit
+	// } else if readyResponse.StatusCode != 200 {
+	// 	log.Fatalln("Signaling server rejected ready request") // exit
+	// }
 
 	// set up udp listener
 	// TODO: replace with configurable port
 	wg := sync.WaitGroup{}
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	//
+	// 	conn, err := net.ListenPacket("udp", ":8585")
+	// 	if err != nil {
+	// 		log.Println("Error creating socket:", err)
+	// 		return
+	// 	}
+	// 	defer conn.Close()
+	//
+	// 	log.Println("Listening on :8585...")
+	//
+	// 	// TODO: consider safer alternatives - protobuf?
+	// 	buf := make([]byte, 1024)
+	//
+	// 	for {
+	// 		select {
+	// 		case <-exitchan:
+	// 			return
+	// 		default:
+	// 		}
+	//
+	// 		err := conn.SetReadDeadline(time.Now().Add(1_000 * time.Millisecond))
+	// 		if err != nil {
+	// 			log.Println("Error setting UDP read deadline: ", err)
+	//
+	// 			continue
+	// 		}
+	//
+	// 		_, addr, err := conn.ReadFrom(buf)
+	// 		if err != nil {
+	// 			if strings.Contains(err.Error(), "i/o timeout") {
+	// 				log.Println("UDP wait cycle timeout, re-iterating")
+	// 			} else {
+	// 				log.Println("Error reading UDP packet: ", err)
+	// 			}
+	//
+	// 			continue
+	// 		}
+	// 		req := datagram.ClientIntroRequest{}
+	//
+	// 		err = json.NewDecoder(bytes.NewReader(buf)).Decode(&req)
+	// 		if err != nil {
+	// 			log.Println("Error parsing UDP packet: ", err)
+	//
+	// 			continue
+	// 		}
+	//
+	// 		log.Println("Got new datagram: ", req)
+	//
+	// 		res, err := json.Marshal(&datagram.ClientIntroResponse{Test: "check"})
+	// 		if err != nil {
+	// 			log.Println("Error serializing datagram response: ", err)
+	// 		}
+	//
+	// 		if _, err := conn.WriteTo(res, addr); err != nil {
+	// 			log.Println("Error writing datagram: ", err)
+	// 		}
+	// 	}
+	// }()
+
+	log.Println("All set up!")
+
+	clientAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:8586") // Change IP to server's IP
+	if err != nil {
+		panic(err)
+	}
+
+	serverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:8484") // Change IP to server's IP
+	if err != nil {
+		panic(err)
+	}
+
+	client, err := stun.NewClient(clientAddr, serverAddr, "test", make([]byte, 0), make([]byte, 0))
+	if err != nil {
+		panic(err)
+	}
+
+	defer client.Dispose()
+
+	parent := context.Background()
+	ctx, cancel := context.WithCancel(parent)
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
-		conn, err := net.ListenPacket("udp", ":8585")
-		if err != nil {
-			log.Println("Error creating socket:", err)
-			return
-		}
-		defer conn.Close()
-
-		log.Println("Listening on :8585...")
-
-		// TODO: consider safer alternatives - protobuf?
-		buf := make([]byte, 1024)
-
-		for {
-			select {
-			case <-exitchan:
-				return
-			default:
-			}
-
-			err := conn.SetReadDeadline(time.Now().Add(1_000 * time.Millisecond))
-			if err != nil {
-				log.Println("Error setting UDP read deadline: ", err)
-
-				continue
-			}
-
-			_, addr, err := conn.ReadFrom(buf)
-			if err != nil {
-				if strings.Contains(err.Error(), "i/o timeout") {
-					log.Println("UDP wait cycle timeout, re-iterating")
-				} else {
-					log.Println("Error reading UDP packet: ", err)
-				}
-
-				continue
-			}
-			req := datagram.ClientIntroRequest{}
-
-			err = json.NewDecoder(bytes.NewReader(buf)).Decode(&req)
-			if err != nil {
-				log.Println("Error parsing UDP packet: ", err)
-
-				continue
-			}
-
-			log.Println("Got new datagram: ", req)
-
-			res, err := json.Marshal(&datagram.ClientIntroResponse{Test: "check"})
-			if err != nil {
-				log.Println("Error serializing datagram response: ", err)
-			}
-
-			if _, err := conn.WriteTo(res, addr); err != nil {
-				log.Println("Error writing datagram: ", err)
-			}
-		}
+		client.Serve(ctx)
 	}()
-
-	log.Println("All set up!")
 
 	// standby
 	wg.Add(1)
 	go func() {
-		<-exitchan
-		wg.Done()
+		defer wg.Done()
+		for {
+			select {
+			case <-exitchan:
+				cancel()
+				return
+			default:
+				{
+					time.Sleep(time.Duration(5) * time.Second)
+
+					// Resolve the destination address (server address)
+					dR, err := client.Discover()
+					if err != nil {
+						log.Println("Discover request failed with error: ", err)
+
+						continue
+					} else {
+						log.Println("Got discover response: ", dR.String())
+					}
+
+					bR, err := client.Bind("NONE")
+					if err != nil {
+						log.Println("Bind request failed with error: ", err)
+
+						continue
+					} else {
+						log.Println("Got bind response: ", bR.String())
+					}
+
+					rec, err := net.ResolveUDPAddr("udp", bR.Address)
+					if err != nil {
+						log.Println("Echo request error: ", err)
+
+						continue
+					}
+
+					err = client.SendEcho(rec)
+					if err != nil {
+						log.Println("Bind request failed with error: ", err)
+
+						continue
+					} else {
+						log.Println("SENT ECHO: ", rec)
+					}
+				}
+			}
+		}
 	}()
 	wg.Wait()
 

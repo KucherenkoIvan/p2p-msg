@@ -34,6 +34,7 @@ build: all
 clean:
 	@echo "Cleaning binaries..."
 	@rm -rf bin/
+	@rm -rf pkg/protobuf/gen/*
 	@echo "✅ Cleaned"
 
 # Run targets (for development)
@@ -66,7 +67,7 @@ deps:
 protobuf:
 	@echo "Compiling protobuf..."
 	@protoc --proto_path=./pkg/protobuf --go_out=./pkg/protobuf/gen ./pkg/protobuf/*.proto
-	@echo "✅ Dependencies installed"
+	@echo "✅ Protobuf compiled"
 
 # Help
 help:
