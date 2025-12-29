@@ -11,7 +11,7 @@
 	run-tui-client
 
 # Build all binaries
-all: signaling-server tui-client
+all: protobuf signaling-server tui-client
 
 # Individual service builds
 signaling-server:

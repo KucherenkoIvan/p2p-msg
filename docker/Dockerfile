@@ -3,6 +3,13 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /build
 
+RUN apk add --no-cache make && \
+	apk add --no-cache protobuf-dev && \
+	apk add --no-cache protoc
+
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
 # Copy go mod files
 COPY go.mod go.sum ./
 RUN go mod download
@@ -11,7 +18,7 @@ RUN go mod download
 COPY . .
 
 # Build all required binaries
-RUN go build -o bin/signaling cmd/signaling-server/main.go
+RUN make all
 
 # Runtime stage
 FROM alpine:latest
@@ -19,7 +26,7 @@ FROM alpine:latest
 WORKDIR /app
 
 # Copy binaries from builder
-COPY --from=builder /build/bin/signaling /app/bin/signaling
+COPY --from=builder /build/bin/signaling-server /app/bin/signaling
 
 # Copy configs
 COPY cfg /app/cfg
