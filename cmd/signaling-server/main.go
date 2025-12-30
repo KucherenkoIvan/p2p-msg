@@ -129,7 +129,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		addr, err := net.ResolveUDPAddr("udp", ":8484")
+		addr, err := net.ResolveUDPAddr("udp", "0.0.0.0:8484")
 		if err != nil {
 			log.Fatalln(err)
 		}

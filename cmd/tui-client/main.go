@@ -127,7 +127,7 @@ func main() {
 
 	log.Println("All set up!")
 
-	clientAddr, err := net.ResolveUDPAddr("udp", ":8585") // Change IP to server's IP
+	clientAddr, err := net.ResolveUDPAddr("udp", "0.0.0.0:0")
 	if err != nil {
 		panic(err)
 	}

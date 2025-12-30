@@ -7,6 +7,7 @@ services:
       dockerfile: docker/Dockerfile
     container_name: signaling-server
     ports:
+      - "8484:8484/tcp"
       - "8484:8484/udp"
     restart: unless-stopped
 
